@@ -3,8 +3,11 @@ import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_application_1/view/history_view.dart';
+import 'package:flutter_application_1/view/location_page.dart';
 import 'package:flutter_application_1/view/map_view.dart';
 import 'package:flutter_application_1/view/settings_view.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:location/location.dart';
 import 'package:water_drop_nav_bar/water_drop_nav_bar.dart';
 
 class BottomBar extends StatefulWidget {
@@ -18,7 +21,7 @@ class _BottomBarState extends State<BottomBar> {
   final Color navigationBarColor = Colors.white;
   int selectedIndex = 1;
   late PageController pageController;
-
+  GoogleMapController? _mapController;
   @override
   void initState() {
     super.initState();
@@ -34,7 +37,12 @@ class _BottomBarState extends State<BottomBar> {
         body: PageView(
           physics: const NeverScrollableScrollPhysics(),
           controller: pageController,
-          children: <Widget>[PastRoutesScreen(), MapScreen(), SettingsView()],
+          children: <Widget>[
+            MapScreen(),
+            SettingsView(),
+            _mapController == null ? Center(child: CircularProgressIndicator()) : LocationHistoryScreen(mapController: _mapController!),
+            AddLocationScreen(),
+          ],
         ),
         bottomNavigationBar: WaterDropNavBar(
           backgroundColor: navigationBarColor,
@@ -46,6 +54,7 @@ class _BottomBarState extends State<BottomBar> {
           },
           selectedIndex: selectedIndex,
           barItems: <BarItem>[
+            BarItem(filledIcon: Icons.abc, outlinedIcon: Icons.abc_outlined),
             // History sekmesi için ikon
             BarItem(filledIcon: Icons.history_rounded, outlinedIcon: Icons.history_outlined),
             // Map sekmesi için ikon

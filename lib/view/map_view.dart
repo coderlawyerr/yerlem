@@ -1,151 +1,390 @@
-import 'dart:convert';
+// import 'dart:async';
+// import 'dart:math';
+// import 'package:flutter/material.dart';
+// import 'package:google_maps_flutter/google_maps_flutter.dart';
+// import 'package:location/location.dart';
+// import 'package:provider/provider.dart';
+// import '../models/location_model.dart';
+// import '../providers/location_provider.dart';
+
+// class MapScreen extends StatefulWidget {
+//   const MapScreen({Key? key}) : super(key: key);
+
+//   @override
+//   State<MapScreen> createState() => _MapScreenState();
+// }
+
+// class _MapScreenState extends State<MapScreen> {
+//   GoogleMapController? _mapController;
+//   final Location _locationService = Location();
+//   bool _isRecording = false;
+//   int? _currentRouteId;
+//   List<LatLng> _routePoints = [];
+//   LatLng? _currentLocation;
+//   Marker? _currentMarker;
+//   @override
+//   void initState() {
+//     super.initState();
+//     _initLocationTracking();
+//   }
+
+//   Future<void> _initLocationTracking() async {
+//     var permission = await _locationService.hasPermission();
+//     if (permission != PermissionStatus.granted) {
+//       permission = await _locationService.requestPermission();
+//     }
+
+//     if (permission == PermissionStatus.granted) {
+//       _locationService.onLocationChanged.listen((LocationData data) {
+//         final newPoint = LatLng(data.latitude!, data.longitude!);
+//         setState(() {
+//           _currentLocation = newPoint;
+//           if (_isRecording) {
+//             _routePoints.add(newPoint);
+//           }
+//         });
+
+//         _mapController?.animateCamera(CameraUpdate.newLatLng(newPoint));
+//         _checkProximityAndNotify(newPoint);
+//       });
+//     } else {
+//       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Konum izni verilmedi!')));
+//     }
+//   }
+
+//   void _checkProximityAndNotify(LatLng currentPosition) {
+//     final provider = Provider.of<LocationProvider>(context, listen: false);
+//     for (var gf in provider.geofences) {
+//       final distance = _calculateDistance(currentPosition.latitude, currentPosition.longitude, gf.latitude, gf.longitude);
+//       if (distance <= gf.radius) {
+//         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("'${gf.id}' ID'li konum bölgesine girdiniz!")));
+//         break;
+//       }
+//     }
+//   }
+
+//   double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+//     const earthRadius = 6371000; // metre
+//     final dLat = _degToRad(lat2 - lat1);
+//     final dLng = _degToRad(lon2 - lon1);
+//     final a = sin(dLat / 2) * sin(dLat / 2) + cos(_degToRad(lat1)) * cos(_degToRad(lat2)) * sin(dLng / 2) * sin(dLng / 2);
+//     final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+//     return earthRadius * c;
+//   }
+
+//   double _degToRad(double deg) => deg * (pi / 180);
+
+//   void _startRecording() async {
+//     final locationData = await _locationService.getLocation();
+//     if (locationData.latitude != null && locationData.longitude != null) {
+//       final currentLatLng = LatLng(locationData.latitude!, locationData.longitude!);
+
+//       // Haritayı mevcut konuma taşı
+//       _mapController?.animateCamera(CameraUpdate.newLatLng(currentLatLng));
+
+//       setState(() {
+//         _isRecording = true;
+//         _currentRouteId = DateTime.now().millisecondsSinceEpoch;
+//         _routePoints.clear();
+//         _routePoints.add(currentLatLng); // Başlangıç noktasını ekle
+//         _currentMarker = Marker(markerId: const MarkerId('current_location'), position: currentLatLng, infoWindow: const InfoWindow(title: "Mevcut Konum"));
+//       });
+
+//       print("Kayıt başladı");
+//     } else {
+//       print("Mevcut konum alınamadı");
+//     }
+//   }
+
+//   void _stopRecording() {
+//     setState(() => _isRecording = false);
+//     if (_currentRouteId != null) {
+//       final provider = Provider.of<LocationProvider>(context, listen: false);
+//       final routeLocations = _routePoints.map((p) => LocationDataModel(latitude: p.latitude, longitude: p.longitude, timestamp: DateTime.now())).toList();
+//       provider.saveRoute(_currentRouteId!, routeLocations);
+//     }
+//     print("Kayıt bitti");
+//   }
+
+//   Set<Circle> _buildLocationCircle() {
+//     if (_currentLocation == null) return {};
+//     return {
+//       Circle(
+//         circleId: const CircleId("current_circle"),
+//         center: _currentLocation!,
+//         radius: 20,
+//         fillColor: Colors.blue.withOpacity(0.4),
+//         strokeColor: Colors.blue,
+//         strokeWidth: 2,
+//       ),
+//     };
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     final provider = Provider.of<LocationProvider>(context);
+
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text("Harita Ekranı"),
+//         actions: [IconButton(icon: const Icon(Icons.history), onPressed: () => Navigator.pushNamed(context, '/history'))],
+//       ),
+//       body: GoogleMap(
+//         initialCameraPosition: const CameraPosition(target: LatLng(37.872669888420376, 32.49263157763532), zoom: 15),
+//         onMapCreated: (c) => _mapController = c,
+//         myLocationEnabled: true,
+//         myLocationButtonEnabled: true,
+//         markers: _currentMarker != null ? {_currentMarker!} : {},
+//         polylines: {Polyline(polylineId: const PolylineId("route"), points: _routePoints, width: 4, color: Colors.blue)},
+//         circles: {
+//           ..._buildLocationCircle(),
+//           ...provider.geofences.map(
+//             (gf) => Circle(
+//               circleId: CircleId('gf_${gf.id}'),
+//               center: LatLng(gf.latitude, gf.longitude),
+//               radius: gf.radius.toDouble(),
+//               fillColor: Colors.green.withOpacity(0.2),
+//               strokeColor: Colors.green,
+//               strokeWidth: 2,
+//             ),
+//           ),
+//         },
+//       ),
+//       floatingActionButton: Row(
+//         mainAxisAlignment: MainAxisAlignment.end,
+//         children: [
+//           FloatingActionButton(
+//             backgroundColor: Colors.orange,
+//             onPressed: _startRecording,
+//             child: const Icon(Icons.location_searching),
+//             tooltip: ' Kaydı Başlat',
+//           ),
+//           const SizedBox(width: 10),
+//           FloatingActionButton(backgroundColor: Colors.red, onPressed: _stopRecording, child: const Icon(Icons.stop), tooltip: 'Kaydı Durdur'),
+//         ],
+//       ),
+//     );
+//   }
+// }
+
+import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/providers/location_provider.dart';
-import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:provider/provider.dart';
+import '../models/location_model.dart';
+import '../providers/location_provider.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({Key? key}) : super(key: key);
 
   @override
-  _MapScreenState createState() => _MapScreenState();
+  State<MapScreen> createState() => _MapScreenState();
 }
 
 class _MapScreenState extends State<MapScreen> {
   GoogleMapController? _mapController;
+  final Location _locationService = Location();
+  bool _isRecording = false;
+  int? _currentRouteId;
   List<LatLng> _routePoints = [];
-  late Location _locationService;
-  Marker? _currentLocationMarker;
-  WebSocketChannel? _channel;
+  LatLng? _currentLocation;
+  Marker? _currentMarker;
+  bool _hasNotified = false; // Bildirim durumu
+  StreamSubscription<LocationData>? _locationSubscription;
 
   @override
   void initState() {
     super.initState();
-    _locationService = Location();
-    Provider.of<LocationProvider>(context, listen: false).initDatabase();
-    _initWebSocket();
-    _listenLocation();
+    _checkPermissionAndSetKonya();
   }
 
-  void _initWebSocket() {
-    // Buraya kendi WebSocket sunucu adresini yazabilirsin
-    _channel = WebSocketChannel.connect(
-      Uri.parse('wss://echo.websocket.org'), // Test server için
-      // Örneğin kendi sunucun olursa ws://ip_adresi:port
-    );
+  Future<void> _checkPermissionAndSetKonya() async {
+    var permission = await _locationService.hasPermission();
+    if (permission != PermissionStatus.granted) {
+      permission = await _locationService.requestPermission();
+    }
+
+    if (permission == PermissionStatus.granted) {
+      // İzin verildiyse sadece Konya koordinatına odaklan (Mevcut konumu otomatik alma)
+      setState(() {
+        _currentLocation = const LatLng(37.872669888420376, 32.49263157763532);
+        _currentMarker = Marker(
+          markerId: const MarkerId('current_location'),
+          position: _currentLocation!,
+          infoWindow: const InfoWindow(title: "Konya Başlangıç Konumu"),
+        );
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Konum izni verilmedi!')));
+      // İzin yoksa da Konya gösterebiliriz
+      setState(() {
+        _currentLocation = const LatLng(37.872669888420376, 32.49263157763532);
+        _currentMarker = Marker(
+          markerId: const MarkerId('current_location'),
+          position: _currentLocation!,
+          infoWindow: const InfoWindow(title: "Konya Başlangıç Konumu"),
+        );
+      });
+    }
   }
 
-  void _listenLocation() async {
-    bool serviceEnabled = await _locationService.serviceEnabled();
-    if (!serviceEnabled) {
-      serviceEnabled = await _locationService.requestService();
-      if (!serviceEnabled) return;
-    }
-
-    PermissionStatus permissionGranted = await _locationService.hasPermission();
-    if (permissionGranted == PermissionStatus.denied) {
-      permissionGranted = await _locationService.requestPermission();
-      if (permissionGranted != PermissionStatus.granted) return;
-    }
-
-    _locationService.onLocationChanged.listen((LocationData locationData) {
-      if (locationData.latitude != null && locationData.longitude != null) {
-        LatLng newPoint = LatLng(locationData.latitude!, locationData.longitude!);
-
-        setState(() {
+  void _startLocationListener() {
+    _locationSubscription = _locationService.onLocationChanged.listen((LocationData data) {
+      final newPoint = LatLng(data.latitude!, data.longitude!);
+      setState(() {
+        _currentLocation = newPoint;
+        if (_isRecording) {
           _routePoints.add(newPoint);
-          _currentLocationMarker = Marker(
-            markerId: const MarkerId('current_location'),
-            position: newPoint,
-          );
-        });
+        }
+        _currentMarker = Marker(markerId: const MarkerId('current_location'), position: newPoint, infoWindow: const InfoWindow(title: "Mevcut Konum"));
+      });
 
-        Provider.of<LocationProvider>(context, listen: false).insertLocation(newPoint);
-
-        _mapController?.animateCamera(CameraUpdate.newLatLng(newPoint));
-
-        // Konumu WebSocket ile gönder
-        _sendLocationOverWebSocket(newPoint);
-      }
+      _mapController?.animateCamera(CameraUpdate.newLatLng(newPoint));
+      _checkProximityAndNotify(newPoint);
     });
   }
 
-  void _sendLocationOverWebSocket(LatLng point) {
-    if (_channel != null) {
-      final locationData = {
-        'latitude': point.latitude,
-        'longitude': point.longitude,
-        'timestamp': DateTime.now().toIso8601String(),
-      };
-      _channel!.sink.add(jsonEncode(locationData));
+  void _checkProximityAndNotify(LatLng currentPosition) {
+    final provider = Provider.of<LocationProvider>(context, listen: false);
+    for (var gf in provider.geofences) {
+      final distance = _calculateDistance(currentPosition.latitude, currentPosition.longitude, gf.latitude, gf.longitude);
+      if (distance <= gf.radius && !_hasNotified) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("'${gf.id}' ID'li konum bölgesine girdiniz!")));
+        _hasNotified = true; // Bildirim gösterildi
+        break;
+      }
     }
+  }
+
+  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+    const earthRadius = 6371000; // metre
+    final dLat = _degToRad(lat2 - lat1);
+    final dLng = _degToRad(lon2 - lon1);
+    final a = sin(dLat / 2) * sin(dLat / 2) + cos(_degToRad(lat1)) * cos(_degToRad(lat2)) * sin(dLng / 2) * sin(dLng / 2);
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return earthRadius * c;
+  }
+
+  double _degToRad(double deg) => deg * (pi / 180);
+
+  void _startRecording() async {
+    final locationData = await _locationService.getLocation();
+    if (locationData.latitude != null && locationData.longitude != null) {
+      final currentLatLng = LatLng(locationData.latitude!, locationData.longitude!);
+
+      // Haritayı mevcut konuma taşı
+      _mapController?.animateCamera(CameraUpdate.newLatLng(currentLatLng));
+
+      setState(() {
+        _isRecording = true;
+        _currentRouteId = DateTime.now().millisecondsSinceEpoch;
+        _routePoints.clear();
+        _routePoints.add(currentLatLng); // Başlangıç noktasını ekle
+        _currentMarker = Marker(markerId: const MarkerId('current_location'), position: currentLatLng, infoWindow: const InfoWindow(title: "Mevcut Konum"));
+        _hasNotified = false; // Bildirim sıfırla kayıt başlarken
+      });
+
+      // Konum dinleyicisini başlat
+      _startLocationListener();
+
+      print("Kayıt başladı");
+    } else {
+      print("Mevcut konum alınamadı");
+    }
+  }
+
+  void _stopRecording() {
+    if (_isRecording) {
+      setState(() {
+        _isRecording = false;
+      });
+
+      if (_currentRouteId != null) {
+        final provider = Provider.of<LocationProvider>(context, listen: false);
+        final routeLocations = _routePoints.map((p) => LocationDataModel(latitude: p.latitude, longitude: p.longitude, timestamp: DateTime.now())).toList();
+        provider.saveRoute(_currentRouteId!, routeLocations);
+      }
+
+      _locationSubscription?.cancel();
+      _locationSubscription = null;
+
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Kayıt durduruldu.")));
+
+      print("Kayıt bitti");
+    }
+  }
+
+  Set<Circle> _buildLocationCircle() {
+    if (_currentLocation == null) return {};
+    return {
+      Circle(
+        circleId: const CircleId("current_circle"),
+        center: _currentLocation!,
+        radius: 20,
+        fillColor: Colors.blue.withOpacity(0.4),
+        strokeColor: Colors.blue,
+        strokeWidth: 2,
+      ),
+    };
   }
 
   @override
   void dispose() {
-    _channel?.sink.close();
+    _locationSubscription?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<LocationProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Geçmiş Rotalar ve Canlı Konum'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.calendar_today),
-            onPressed: _selectDate,
-          ),
-        ],
+        title: const Text("Harita Ekranı"),
+        actions: [IconButton(icon: const Icon(Icons.history), onPressed: () => Navigator.pushNamed(context, '/history'))],
       ),
-      body: Consumer<LocationProvider>(
-        builder: (context, locationProvider, child) {
-          Set<Polyline> polylines = {
-            Polyline(
-              polylineId: const PolylineId('live_route'),
-              points: _routePoints,
-              color: Colors.blue,
-              width: 5,
-            ),
-          };
-
-          Set<Marker> markers = {};
-          if (_currentLocationMarker != null) {
-            markers.add(_currentLocationMarker!);
+      body: GoogleMap(
+        initialCameraPosition: const CameraPosition(target: LatLng(37.872669888420376, 32.49263157763532), zoom: 15),
+        onMapCreated: (c) {
+          _mapController = c;
+          // Harita oluşturulduğunda Konya konumuna odaklan
+          if (_currentLocation != null) {
+            _mapController?.moveCamera(CameraUpdate.newLatLng(_currentLocation!));
           }
-
-          return GoogleMap(
-            initialCameraPosition: const CameraPosition(
-              target: LatLng(37.872669888420376, 32.49263157763532),
-              zoom: 15,
+        },
+        myLocationEnabled: true,
+        myLocationButtonEnabled: true,
+        markers: _currentMarker != null ? {_currentMarker!} : {},
+        polylines: {Polyline(polylineId: const PolylineId("route"), points: _routePoints, width: 4, color: Colors.blue)},
+        circles: {
+          ..._buildLocationCircle(),
+          ...provider.geofences.map(
+            (gf) => Circle(
+              circleId: CircleId('gf_${gf.id}'),
+              center: LatLng(gf.latitude, gf.longitude),
+              radius: gf.radius.toDouble(),
+              fillColor: Colors.green.withOpacity(0.2),
+              strokeColor: Colors.green,
+              strokeWidth: 2,
             ),
-            onMapCreated: (controller) => _mapController = controller,
-            markers: markers,
-            polylines: polylines,
-            myLocationEnabled: true,
-            myLocationButtonEnabled: true,
-          );
+          ),
         },
       ),
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            backgroundColor: Colors.orange,
+            onPressed: _startRecording,
+            child: const Icon(Icons.location_searching),
+            tooltip: 'Kaydı Başlat',
+          ),
+          const SizedBox(width: 10),
+          FloatingActionButton(backgroundColor: Colors.red, onPressed: _stopRecording, child: const Icon(Icons.stop), tooltip: 'Kaydı Durdur'),
+        ],
+      ),
     );
-  }
-
-  Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-    );
-
-    if (picked != null) {
-      Provider.of<LocationProvider>(context, listen: false).fetchRoutesByDate(picked);
-      setState(() {
-        _routePoints.clear();
-      });
-    }
   }
 }
