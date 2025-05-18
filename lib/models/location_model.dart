@@ -29,8 +29,9 @@ class LocationDataModel {
       latitude: map['latitude'],
       longitude: map['longitude'],
       timestamp: DateTime.parse(map['timestamp']),
-      notified: map['notified'] == 1,
+      notified: map.containsKey('notified') ? map['notified'] == 1 : null,
       geofenceName: map['geofenceName'],
     );
   }
+
 }

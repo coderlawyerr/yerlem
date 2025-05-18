@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Canlı Konum Takibi',
+
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.green),
       home: SplashScreen(), // Ana ekranımız MapScreen
     );

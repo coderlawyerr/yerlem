@@ -19,13 +19,16 @@ class LocationProvider extends ChangeNotifier {
       version: 2,
       onCreate: (db, version) async {
         await db.execute('''
-          CREATE TABLE location_data (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            latitude REAL,
-            longitude REAL,
-            timestamp TEXT
-          )
-        ''');
+  CREATE TABLE location_data (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    latitude REAL,
+    longitude REAL,
+    timestamp TEXT,
+    notified INTEGER,
+    geofenceName TEXT
+  )
+''');
+        /////cografı sınıur
         await db.execute('''
           CREATE TABLE geofences (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -133,6 +136,7 @@ class LocationProvider extends ChangeNotifier {
       await Future.delayed(const Duration(milliseconds: 500));
     }
   }
+
   Future<void> playRouteOnMap(GoogleMapController controller, List<LatLng> route) async {
     if (route.isEmpty) return;
 
@@ -141,7 +145,6 @@ class LocationProvider extends ChangeNotifier {
       controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(target: route[i], zoom: 17)));
     }
   }
-
 }
 
 /// Geofence modeli
