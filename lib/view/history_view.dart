@@ -126,7 +126,17 @@ class _LocationHistoryScreenState extends State<LocationHistoryScreen> {
             itemCount: provider.locationHistory.length,
             itemBuilder: (context, index) {
               final location = provider.locationHistory[index];
-              return ListTile(title: Text('Lat: ${location.latitude}, Lng: ${location.longitude}'), subtitle: Text(location.timestamp.toString()));
+              return ListTile(
+                title: Text('Lat: ${location.latitude}, Lng: ${location.longitude}'),
+                subtitle: Text('Zaman: ${location.timestamp.toString()}'),
+                trailing: IconButton(
+                  icon: const Icon(Icons.play_arrow),
+                  onPressed: () async {
+                    // Rota ID'sini al ve oynat
+                    await _playRoute(location.id!);
+                  },
+                ),
+              );
             },
           );
         },

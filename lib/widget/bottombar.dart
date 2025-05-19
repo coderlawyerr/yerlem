@@ -40,7 +40,7 @@ class _BottomBarState extends State<BottomBar> {
           children: <Widget>[
             MapScreen(),
             SettingsView(),
-            _mapController == null ? Center(child: CircularProgressIndicator()) : LocationHistoryScreen(controller: _mapController!),
+            _mapController == null ? Center(child: Text("")) : LocationHistoryScreen(controller: _mapController!),
             AddLocationScreen(),
           ],
         ),
